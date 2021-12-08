@@ -10,6 +10,19 @@
 #include "ds18b20.h"
 #include "configuration.h"
 
+// JNa
+//#define __USE_DEEP_SLEEP__ 1    /* Web server does not work if deep sleep is used */
+#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  60       /* Time ESP32 will go to sleep (in seconds) */
+
+RTC_DATA_ATTR int bootCount = 0;
+RTC_DATA_ATTR int deepSleepEnabled = 0; // If __USE_DEEP_SLEEP__ is not defined, a long press of the second button will also activate deep sleep.
+
+#ifdef __USE_DEEP_SLEEP__
+deepSleepEnabled = 1;
+#endif
+// End JNa
+
 #ifdef __HAS_BME280__
 #include <Adafruit_BME280.h>
 #endif
@@ -118,17 +131,39 @@ void smartConfigStart(Button2 &b)
     }
     WiFi.stopSmartConfig();
     Serial.println();
-    Serial.print("smartConfigStop Connected:");
+    Serial.print("smartConfigStop Connected: ");
     Serial.print(WiFi.SSID());
     Serial.print("PSW: ");
     Serial.println(WiFi.psk());
 }
 
+// JNa
+void print_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason){
+    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
+  }
+}
+// End JNa
+
 void sleepHandler(Button2 &b)
 {
-    Serial.println("Enter Deepsleep ...");
+    Serial.print("Enter deep sleep for "); Serial.print(TIME_TO_SLEEP); Serial.println(" seconds ...");
     esp_sleep_enable_ext1_wakeup(GPIO_SEL_35, ESP_EXT1_WAKEUP_ALL_LOW);
     delay(1000);
+// JNa
+    deepSleepEnabled = 1;
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    delay(1000);
+// End JNa
     esp_deep_sleep_start();
 }
 
@@ -145,9 +180,9 @@ void setupWiFi()
 #else
     WiFi.mode(WIFI_STA);
 
-    Serial.print("Connect SSID:");
+    Serial.print("Connect SSID: ");
     Serial.print(WIFI_SSID);
-    Serial.print(" Password:");
+    Serial.print(" Password: ");
     Serial.println(WIFI_PASSWD);
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWD);
@@ -156,7 +191,7 @@ void setupWiFi()
         delay(3000);
         esp_restart();
     }
-    Serial.print("WiFi connect success ! , ");
+    Serial.print("WiFi connect success!!! ");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 #endif
@@ -258,6 +293,14 @@ void setup()
 {
     Serial.begin(115200);
 
+// JNa
+    ++bootCount;
+    Serial.println("Boot number: " + String(bootCount));
+
+    //Print the wakeup reason for ESP32
+    print_wakeup_reason();
+// End JNa
+
     button.setLongClickHandler(smartConfigStart);
     useButton.setLongClickHandler(sleepHandler);
 
@@ -308,6 +351,15 @@ void setup()
         dashboard.sendUpdates();
     });
 #endif  /*__HAS_MOTOR__*/
+
+// JNa
+if (deepSleepEnabled == 1) {
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    delay(1000);
+    Serial.print("Enter deep sleep for "); Serial.print(TIME_TO_SLEEP); Serial.println(" seconds ...");
+    esp_deep_sleep_start();
+}
+// End JNa
 
 }
 

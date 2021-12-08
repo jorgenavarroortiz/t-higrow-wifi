@@ -10,7 +10,7 @@
 /*
     Sensor selection, the default is the onboard sensor
 */
-// #define __HAS_BME280__               //BME280 temperature, humidity, pressure, height sensor
+#define __HAS_BME280__               //BME280 temperature, humidity, pressure, height sensor
 // #define __HAS_MOTOR__                //High and low level control relay, or other level drive motor
 // #define __HAS_RGB__                  //WS2812 single point colorful light
 
@@ -75,4 +75,3 @@
 #define DASH_MOTOR_CTRL_STRING          "Water pump"
 
 #endif  /*_USE_EN_*/
-
