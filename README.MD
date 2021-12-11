@@ -1,7 +1,6 @@
 Based on https://github.com/jorgenavarroortiz/LilyGo-HiGrow
 
 - Added deep sleep: define `__USE_DEEP_SLEEP` or long press the second button. It will start repeating after `TIME_TO_SLEEP` seconds.
-- TO BE DONE: add LoRaWAN and remove Wi-Fi depending on code definitions (e.g. `__USE_LORAWAN__` and `__USE_WIFI__`).
 
 ----
 
